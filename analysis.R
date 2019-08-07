@@ -16,7 +16,20 @@ itaxa <- as.vector(unique(idat$scientificName))
 gdat <- read.csv("srli_occur.txt", sep = "\t", header = TRUE)
 gtaxa <- as.vector(unique(gdat$scientificName))
 
-# grab GBIF records for all unique taxa in the Iberian dataset
+# grab GBIF records for all unique taxa in the Iberian dataset, remove records from contributed literature dataset
+n <- length(itaxa)
+temp <- data.frame()
+dat <- list()
 
-# grab GBIF records for all unique taxa in the global dataset
+for(i in 1:n){
+  taxon <- itaxa[i] ## grab names
+  
+  temp <- data.frame()   
+  try(temp <- records(taxon))  ## try getting records from GBIF
+  try(temp$V1 <- taxon)
+  
+  dat[[i]] <- temp
+}
+
+# grab GBIF records for all unique taxa in the global dataset, remove records from contributed literature dataset
 
