@@ -6,7 +6,7 @@
 # Author: Vaughn M. Shirey
 
 # load required libraries
-library(red); library(reshape2)
+library(red); library(reshape2); library(dplyr)
 
 # load Iberian dataset
 idat <- read.csv("iberian_occur.txt", sep = "\t", header = TRUE)
@@ -42,7 +42,7 @@ for(i in 1:n){
 
 idat_gbif = do.call(rbind, idat_gbif) 
 idat_gbif <- unique(idat_gbif) 
-idat_gbif <- idat_gbif[!(idat_gbif %in% idat),]
+idat_gbif <- anti_join(idat_gbif, idat, by=c("long", "lat", "V1"))
 
 # grab GBIF records for all unique taxa in the global dataset, remove records from contributed literature dataset
 n <- length(gtaxa)
@@ -63,7 +63,7 @@ for(i in 1:n){
 
 gdat_gbif = do.call(rbind, gdat_gbif)
 gdat_gbif <- unique(gdat_gbif)
-gdat_gbif <- gdat_gbif[!(gdat_gbif %in% gdat),]
+gdat_gbif <- anti_join(gdat_gbif, gdat, by=c("long", "lat", "V1"))
 
 # calculate EOO from literature only data set for both Iberian and global lists
 n <- length(itaxa)
@@ -118,3 +118,39 @@ for(i in 1:n){
 # calculate EOO for the combined dataset for both Iberian and global lists
 idat_merge <- rbind(idat, idat_gbif)
 gdat_merge <- rbind(gdat, gdat_gbif)
+
+n <- length(itaxa)
+idat_merge_eoo <- data.frame()
+
+for(i in 1:n){
+  taxon <- itaxa[i]
+  
+  print(paste("Calculating: ", i, " of ", n, "."))
+  
+  idat_merge_eoo[i, 1] <- taxon
+  idat_merge_eoo[i, 2] <- eoo(idat_merge[which(idat_merge[, 3]==taxon), c(1,2)])
+}
+
+n <- length(gtaxa)
+gdat_merge_eoo <- data.frame()
+
+for(i in 1:n){
+  taxon <- gtaxa[i]
+  
+  print(paste("Calculating: ", i, " of ", n, "."))
+  
+  gdat_merge_eoo[i, 1] <- taxon
+  gdat_merge_eoo[i, 2] <- eoo(gdat_merge[which(gdat_merge[, 3]==taxon), c(1,2)])
+}
+
+# cbind and write results to .csv files
+idat_all_eoo <- cbind(idat_eoo, idat_gbif_eoo, idat_merge_eoo)
+idat_all_eoo <- idat_all_eoo[, c(1,2,4,6)]
+colnames(idat_all_eoo) <- c("ScientificName", "Literature", "GBIF", "Combined")
+
+gdat_all_eoo <- cbind(gdat_eoo, gdat_gbif_eoo, gdat_merge_eoo)
+gdat_all_eoo <- gdat_all_eoo[, c(1,2,4,6)]
+colnames(gdat_all_eoo) <- c("ScientificName", "Literature", "GBIF", "Combined")
+
+write.csv(idat_all_eoo, "Iberian_results.csv")
+write.csv(gdat_all_eoo, "Global_results.csv")
