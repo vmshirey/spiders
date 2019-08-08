@@ -8,20 +8,24 @@
 # load required libraries
 library(red); library(reshape2); library(dplyr)
 
-# load Iberian dataset
+# load Iberian dataset & endemic taxon list
 idat <- read.csv("iberian_occur.txt", sep = "\t", header = TRUE)
+itax <- read.csv("iberian_endem.csv", sep = ",", header = FALSE)
 
 # load global dataset
 gdat <- read.csv("srli_occur.txt", sep = "\t", header = TRUE)
 
 # reformat both Iberian and global literature data to match Red-package GBIF output, grab unique taxa
-idat <- (data.frame(long = idat[, 17], lat = idat[, 16], V1 = idat[, 19]))
-gdat <- (data.frame(long = gdat[, 9], lat = gdat[, 8], V1 = gdat[, 13]))
+idat <- (data.frame(long = idat[, 17], lat = idat[, 16], V1 = paste(idat$genus, idat$specificEpithet)))
+gdat <- (data.frame(long = gdat[, 9], lat = gdat[, 8], V1 = paste(gdat$genus, gdat$specificEpithet)))
+
 idat <- idat[!is.na(idat$long),]
 gdat <- gdat[!is.na(gdat$long),]
 
-itaxa <- as.vector(unique(idat[, 3]))
-gtaxa <- as.vector(unique(gdat[, 3]))
+idat <- idat[(idat$V1 %in% itax$V1),] # use only Iberian endemics
+
+itaxa <- as.vector(unique(idat$V1))
+gtaxa <- as.vector(unique(gdat$V1))
 
 # grab GBIF records for all unique taxa in the Iberian dataset, remove records from contributed literature dataset
 n <- length(itaxa)
