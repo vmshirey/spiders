@@ -15,7 +15,7 @@ idat <- read.csv("iberian_occur.txt", sep = "\t", header = TRUE)
 itax <- read.csv("iberian_endem.csv", sep = ",", header = FALSE)
 
 # load global dataset
-gdat <- read.csv("srli_occur.txt", sep = "\t", header = TRUE)
+gdat.1 <- read.csv("srli_occur.txt", sep = "\t", header = TRUE)
 
 # load GBIF data
 gbif <- read.csv("gbif_occur.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) %>%
@@ -25,15 +25,15 @@ gbif <- read.csv("gbif_occur.csv", sep = "\t", header = TRUE, stringsAsFactors =
 
 # reformat both Iberian and global literature data to match Red-package GBIF output, grab unique taxa
 idat <- (data.frame(long = idat[, 17], lat = idat[, 16], V1 = paste(idat$genus, idat$specificEpithet)))
-gdat <- (data.frame(long = gdat[, 9], lat = gdat[, 8], V1 = paste(gdat$genus, gdat$specificEpithet)))
+gdat.1 <- (data.frame(long = gdat.1[, 9], lat = gdat.1[, 8], V1 = paste(gdat.1$genus, gdat.1$specificEpithet)))
 
 idat <- idat[!is.na(idat$long),]
-gdat <- gdat[!is.na(gdat$long),]
+gdat <- gdat.1[!is.na(gdat.1$long),]
 
 idat <- idat[(idat$V1 %in% itax$V1),] # use only Iberian endemics
 
 itaxa <- as.vector(unique(idat$V1))
-gtaxa <- as.vector(unique(gdat$V1))
+gtaxa <- as.vector(unique(gdat.1$V1))
 
 # grab GBIF records for all unique taxa in the Iberian dataset, remove records from contributed literature dataset
 idat_gbif <- gbif %>% filter(species %in% itaxa) %>%
@@ -58,7 +58,7 @@ for(i in 1:n){
   idat_eoo[i, 2] <- eoo(idat[which(idat[, 3]==taxon), c(1,2)])
 }
 
-n <- length(gtaxa)
+n <- length(as.vector(unique(gdat$V1)))
 gdat_eoo <- data.frame()
 
 for(i in 1:n){
@@ -97,7 +97,7 @@ for(i in 1:n){
 
 # calculate EOO for the combined dataset for both Iberian and global lists
 idat_merge <- rbind(idat, idat_gbif)
-gdat_merge <- rbind(gdat, gdat_gbif)
+gdat_merge <- rbind(gdat.1, gdat_gbif)
 
 n <- length(itaxa)
 idat_merge_eoo <- data.frame()
@@ -128,6 +128,12 @@ idat_all_eoo <- cbind(idat_eoo, idat_gbif_eoo, idat_merge_eoo)
 idat_all_eoo <- idat_all_eoo[, c(1,2,4,6)]
 colnames(idat_all_eoo) <- c("ScientificName", "Literature", "GBIF", "Combined")
 
+# add the species from literature with no coordinate data
+gdat_eoo <- gdat_eoo %>% add_row(V1="Longrita rastellata", V2=0) %>%
+  add_row(V1="Vulsor sextus", V2=0) %>%
+  add_row(V1="Cavasteron guttulatum", V2=0) %>%
+  add_row(V1="Suffasia gujaratensis", V2=0) %>%
+  add_row(V1="Huntia deepensis", V2=0)
 gdat_all_eoo <- cbind(gdat_eoo, gdat_gbif_eoo, gdat_merge_eoo)
 gdat_all_eoo <- gdat_all_eoo[, c(1,2,4,6)]
 colnames(gdat_all_eoo) <- c("ScientificName", "Literature", "GBIF", "Combined")
