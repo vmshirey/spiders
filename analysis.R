@@ -9,13 +9,14 @@
 
 # load required libraries
 library(red); library(reshape2); library(tidyverse)
+'%!in%' <- Negate('%in%')
 
 # load Iberian dataset & endemic taxon list
 idat <- read.csv("iberian_occur.txt", sep = "\t", header = TRUE)
 itax <- read.csv("iberian_endem.csv", sep = ",", header = FALSE)
 
 # load global dataset
-gdat.1 <- read.csv("srli_occur.txt", sep = "\t", header = TRUE)
+gdat.1 <- read.csv("reclaimedSRLIspecies_mergedwithSRLI.csv", sep = ",", header = TRUE)
 
 # load GBIF data
 gbif <- read.csv("gbif_occur.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) %>%
@@ -25,7 +26,10 @@ gbif <- read.csv("gbif_occur.csv", sep = "\t", header = TRUE, stringsAsFactors =
 
 # reformat both Iberian and global literature data to match Red-package GBIF output, grab unique taxa
 idat <- (data.frame(long = idat[, 17], lat = idat[, 16], V1 = paste(idat$genus, idat$specificEpithet)))
-gdat.1 <- (data.frame(long = gdat.1[, 9], lat = gdat.1[, 8], V1 = paste(gdat.1$genus, gdat.1$specificEpithet)))
+gdat.1 <- (data.frame(long = gdat.1[, 23], lat = gdat.1[, 22], V1 = gdat.1$species))  %>%
+  filter(V1 %!in% c("Gea spinipes", "Megaphobema robustum", "Pamphobeteus ferox", "Pamphobeteus fortis", "Spelungula cavernicola", "Xenesthis immanis"))
+
+length(unique(gdat.1$V1)) # check number of taxa
 
 idat <- idat[!is.na(idat$long),]
 gdat <- gdat.1[!is.na(gdat.1$long),]
@@ -34,6 +38,15 @@ idat <- idat[(idat$V1 %in% itax$V1),] # use only Iberian endemics
 
 itaxa <- as.vector(unique(idat$V1))
 gtaxa <- as.vector(unique(gdat.1$V1))
+gtaxa <- c(gtaxa, c("Cataxia bolganupensis",
+                        "Cyclosa bianchoria",
+                        "Cyrtarachne hubeiensis",
+                        "Oonops tectulus",
+                        "Orodrassus coloradensis",
+                        "Poecilotheria subfusca",
+                        "Stasimopus nanus",
+                    "Austrarchaea platnikorum"))
+length(gtaxa)
 
 # grab GBIF records for all unique taxa in the Iberian dataset, remove records from contributed literature dataset
 idat_gbif <- gbif %>% filter(species %in% itaxa) %>%
@@ -129,13 +142,22 @@ idat_all_eoo <- idat_all_eoo[, c(1,2,4,6)]
 colnames(idat_all_eoo) <- c("ScientificName", "Literature", "GBIF", "Combined")
 
 # add the species from literature with no coordinate data
-gdat_eoo <- gdat_eoo %>% add_row(V1="Longrita rastellata", V2=0) %>%
-  add_row(V1="Vulsor sextus", V2=0) %>%
-  add_row(V1="Cavasteron guttulatum", V2=0) %>%
-  add_row(V1="Suffasia gujaratensis", V2=0) %>%
-  add_row(V1="Huntia deepensis", V2=0)
-gdat_all_eoo <- cbind(gdat_eoo, gdat_gbif_eoo, gdat_merge_eoo)
-gdat_all_eoo <- gdat_all_eoo[, c(1,2,4,6)]
+gdat_eoo <- gdat_eoo %>%
+  add_row(V1="Cataxia bolganupensis", V2=0)  %>%
+  add_row(V1="Cyclosa bianchoria", V2=0)  %>%
+  add_row(V1="Cyrtarachne hubeiensis", V2=0)  %>%
+  add_row(V1="Oonops tectulus", V2=0)  %>%
+  add_row(V1="Orodrassus coloradensis", V2=0)  %>%
+  add_row(V1="Poecilotheria subfusca", V2=0)  %>%
+  add_row(V1="Stasimopus nanus", V2=0)  %>%
+  add_row(V1="Austrarchaea platnickorum", V2=0) %>%
+  add_row(V1="Cardiopelma mascatum", V2=0) %>%
+  add_row(V1="Zenonina fusca", V2=0) %>%
+  add_row(V1="Urozelotes mysticus", V2=0) %>%
+  add_row(V1="Theuma aprica", V2=0) %>%
+  arrange(V1)
+gdat_all_eoo.1 <- merge(gdat_eoo, gdat_gbif_eoo, by="V1", all=TRUE)
+gdat_all_eoo <- merge(gdat_all_eoo.1, gdat_merge_eoo, by="V1", all=TRUE)
 colnames(gdat_all_eoo) <- c("ScientificName", "Literature", "GBIF", "Combined")
 
 write.csv(idat_all_eoo, "Iberian_results.csv")
